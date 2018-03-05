@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/word-scramble-optimizer.iml" filepath="$PROJECT_DIR$/.idea/modules/word-scramble-optimizer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/word-scramble-optimizer_main.iml" filepath="$PROJECT_DIR$/.idea/modules/word-scramble-optimizer_main.iml" group="word-scramble-optimizer" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/word-scramble-optimizer_test.iml" filepath="$PROJECT_DIR$/.idea/modules/word-scramble-optimizer_test.iml" group="word-scramble-optimizer" />
+    </modules>
+  </component>
+</project>
