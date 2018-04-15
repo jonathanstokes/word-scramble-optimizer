@@ -37,4 +37,30 @@ public class AccuracyFunctionalTest {
         System.out.println(new RatedBoardFormatter().format(leftRatedBoard));
         assertTrue(rightRatedBoard.getRating() > leftRatedBoard.getRating());
     }
+
+    @Test
+    public void itShouldRateBoardsWithCurseWordsProperly() throws IOException {
+        Dictionary dictionary = new Dictionary(3);
+        injestAndClose(dictionary, new File("./src/main/resources/dwyl_alpha_word_list.txt"), 1.0);
+        injestAndClose(dictionary, new File("./src/main/resources/john_lawler_word_list.txt"), 4.0);
+        injestAndClose(dictionary, new File("./src/main/resources/short_normal_word_list.txt"), 8.0);
+        injestAndClose(dictionary, new File("./src/main/resources/noswearing.com.txt"), -50.0);
+        BoardAnalyzer analyzer = new BoardAnalyzer(dictionary, 3);
+        BoardRater rater = new BoardRater();
+
+        Board board = new Board(new char[][] {
+                { 'A', 'A', 'A' },
+                { 'O', 'E', 'S' },
+                { 'P', 'P', 'S' },
+        });
+        RatedBoard ratedBoard = rater.rateBoard(analyzer.analyze(board));
+        System.out.println(new RatedBoardFormatter().format(ratedBoard));
+        assertTrue(ratedBoard.getRating() < 0.0);
+    }
+
+    private void injestAndClose(Dictionary dictionary, File wordListFile, double wordPoints) throws IOException {
+        try (FileWordList fwl = new FileWordList(wordListFile)) {
+            dictionary.ingest(fwl, wordPoints);
+        }
+    }
 }

@@ -69,8 +69,8 @@ public class BoardRater {
 
     protected double deriveRating(BoardAnalysis analysis) {
         double score = 0;
-        // TODO: Add steep penalties for duplicate words.  Except palendromes?
         if (!analysis.isEmpty()) {
+            double lastWordContribution = 0.0;
             for (Map.Entry<Direction, Map<FoundWord.FoundWordType, Map<Integer, Set<FoundWord>>>> directionEntry : analysis.getStatistics().getWordsByDirectionTypeAndLength().entrySet()) {
                 Direction direction = directionEntry.getKey();
                 for (Map.Entry<FoundWord.FoundWordType, Map<Integer, Set<FoundWord>>> typeEntry : directionEntry.getValue().entrySet()) {
@@ -85,16 +85,26 @@ public class BoardRater {
                             double directionScoreFactor = directionFactor.get(direction);
                             double duplicateFactor = word.isDuplicate() ? duplicateWordPenaltyFactor : 1.0;
                             // Assessing penalties with this formula only works if one factor at most is negative.
-                            if (wordScore > 1) {
-                                wordScore = wordScore;
+                            if (wordScore < 0) {
+                                // This is a curse word penalty.  Shorter curse words shouldn't change the value.
+                                wordLengthScore = 1.0;
+                                // duplicateFactor can also be negative. If it is, then...
+                                if (duplicateFactor < 0) {
+                                    // ... treat it as positive for the right overall effect.
+                                    wordScore = Math.abs(wordScore);
+                                }
                             }
-                            score += wordScore * wordLengthScore * typeScoreFactor * directionScoreFactor * duplicateFactor;
+                            lastWordContribution = wordScore * wordLengthScore * typeScoreFactor * directionScoreFactor * duplicateFactor;
+                            score += lastWordContribution;
+                            score = score;
                         }
                     }
                 }
 
             }
-            if (score == 0.0) throw new IllegalStateException("Unexpected rating 0.0 for analysis " + analysis + ".");
+            if (score == 0.0 && lastWordContribution == 0.0) {
+                throw new IllegalStateException("Unexpected rating 0.0 for analysis " + analysis + ".");
+            }
         }
         return score;
     }

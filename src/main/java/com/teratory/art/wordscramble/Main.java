@@ -30,7 +30,7 @@ public class Main {
 
     private static final double MINIMUM_SCORE_FOR_CONSIDERATION = 0.1;
 
-    private static final int MINIMUM_WORD_LENGTH_ALLOWED = 2;
+    private static final int MINIMUM_WORD_LENGTH_ALLOWED = 3;
 
     private static final int FINAL_OUTPUT_COUNT = 30;
 
@@ -40,7 +40,8 @@ public class Main {
 
     public void bruteForceGenerateAndRate(byte width, byte height) throws IOException {
         long startTimeInMillis = System.currentTimeMillis();
-        System.out.println("Generating " + Math.pow(25, (int)width * (int)height) + " boards.");
+        long totalBoardCount = (long)Math.pow(25, (int)width * (int)height);
+        System.out.println("Generating " + totalBoardCount + " boards.");
         Iterator<Board> boardGenerator = new BoardGenerator().generateAll(width, height);
         BoardAnalyzer analyzer = new BoardAnalyzer(loadDictionary(Math.max((int)width, (int)height)), MINIMUM_WORD_LENGTH_ALLOWED);
         BoardRater rater = new BoardRater();
@@ -57,30 +58,32 @@ public class Main {
                 })
                 .map(rb -> {
                     int count = processedBoardCount.incrementAndGet();
-                    if (count % PERIODIC_UPDATE_FREQUENCY == 0L) printPeriodicUpdate(topRatedBoards, count, startTimeInMillis, rb.getAnalyzedBoard().getBoard());
+                    if (count % PERIODIC_UPDATE_FREQUENCY == 0L) printPeriodicUpdate(topRatedBoards, count, totalBoardCount, startTimeInMillis, rb.getAnalyzedBoard().getBoard());
                     return rb;
                 })
                 .count();
         System.out.println("processedBoardCount=" + processedBoardCount + ", count()=" + boardsProcessed + ".");
-        printFinalResult(topRatedBoards, processedBoardCount.longValue(), startTimeInMillis);
+        printFinalResult(topRatedBoards, processedBoardCount.longValue(), totalBoardCount, startTimeInMillis);
     }
 
-    private void printFinalResult(TopRatedBoards highestRatedBoards, long processedBoardCount, long startTimeInMillis) {
-        printUpdate(highestRatedBoards, processedBoardCount, startTimeInMillis, null, FINAL_OUTPUT_COUNT);
+    protected void printFinalResult(TopRatedBoards highestRatedBoards, long processedBoardCount, long totalBoardCount, long startTimeInMillis) {
+        printUpdate(highestRatedBoards, processedBoardCount, totalBoardCount, startTimeInMillis, null, FINAL_OUTPUT_COUNT);
         System.out.println("Processing complete.");
     }
 
-    protected void printPeriodicUpdate(TopRatedBoards highestRatedBoards, long processedBoardCount, long startTimeInMillis, Board latestBoardProcessed) {
-        printUpdate(highestRatedBoards, processedBoardCount, startTimeInMillis, latestBoardProcessed, PERIODIC_UPDATE_COUNT);
+    protected void printPeriodicUpdate(TopRatedBoards highestRatedBoards, long processedBoardCount, long totalBoardCount, long startTimeInMillis, Board latestBoardProcessed) {
+        printUpdate(highestRatedBoards, processedBoardCount, totalBoardCount, startTimeInMillis, latestBoardProcessed, PERIODIC_UPDATE_COUNT);
     }
 
-    protected void printUpdate(TopRatedBoards highestRatedBoards, long processedBoardCount, long startTimeInMillis, Board latestBoardProcessed, int numberOfBoardsToPrint) {
+    protected void printUpdate(TopRatedBoards highestRatedBoards, long processedBoardCount, long totalBoardCount, long startTimeInMillis, Board latestBoardProcessed, int numberOfBoardsToPrint) {
         long currentTimeInMillis = System.currentTimeMillis();
         double elapsedTimeInMinutes = (double)(currentTimeInMillis - startTimeInMillis) / 1000.0 / 60.0;
         double boardsPerMinute = processedBoardCount / elapsedTimeInMinutes;
+        double boardPercentage = (double)processedBoardCount / (double)totalBoardCount;
+        DecimalFormat percentageFormatter = new DecimalFormat("#0.0000%");
         DecimalFormat formatter = new DecimalFormat("#,##0.#");
         System.out.println("***************************************************************************************************************************");
-        System.out.println("After processing " + processedBoardCount + " boards in " + formatter.format(elapsedTimeInMinutes) + " minutes (" + formatter.format(boardsPerMinute) + " boards/minute), here are the top " + numberOfBoardsToPrint + ":");
+        System.out.println("After processing " + processedBoardCount + " boards (" + percentageFormatter.format(boardPercentage) + ") in " + formatter.format(elapsedTimeInMinutes) + " minutes (" + formatter.format(boardsPerMinute) + " boards/minute), here are the top " + numberOfBoardsToPrint + ":");
         Iterator<RatedBoard> boards = highestRatedBoards.getBoards().iterator();
         for (int i = 0, len = numberOfBoardsToPrint; boards.hasNext() && i < len; i++) {
             RatedBoard rb = boards.next();
@@ -101,8 +104,9 @@ public class Main {
     protected Dictionary loadDictionary(int maximumPossibleWordLength) throws IOException {
         Dictionary dictionary = new Dictionary(maximumPossibleWordLength);
         populateDictionary(dictionary, new File("./src/main/resources/dwyl_alpha_word_list.txt"), 1.0);
-        populateDictionary(dictionary, new File("./src/main/resources/john_lawler_word_list.txt"), 2.0);
-        populateDictionary(dictionary, new File("./src/main/resources/short_normal_word_list.txt"), 4.0);
+        populateDictionary(dictionary, new File("./src/main/resources/john_lawler_word_list.txt"), 4.0);
+        populateDictionary(dictionary, new File("./src/main/resources/short_normal_word_list.txt"), 8.0);
+        populateDictionary(dictionary, new File("./src/main/resources/noswearing.com.txt"), -50.0);
         System.out.println("Dictionary ready with " + dictionary.getWordCount() + " words.  Longest word is " + dictionary.getLongestWordLength() + " characters long.");
         return dictionary;
     }
