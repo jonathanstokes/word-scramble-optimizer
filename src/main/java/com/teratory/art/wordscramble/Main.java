@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collector;
 import java.util.stream.StreamSupport;
 
@@ -40,13 +41,13 @@ public class Main {
 
     public void bruteForceGenerateAndRate(byte width, byte height) throws IOException {
         long startTimeInMillis = System.currentTimeMillis();
-        long totalBoardCount = (long)Math.pow(25, (int)width * (int)height);
+        long totalBoardCount = (long)Math.pow(26, (int)width * (int)height);
         System.out.println("Generating " + totalBoardCount + " boards.");
         Iterator<Board> boardGenerator = new BoardGenerator().generateAll(width, height);
         BoardAnalyzer analyzer = new BoardAnalyzer(loadDictionary(Math.max((int)width, (int)height)), MINIMUM_WORD_LENGTH_ALLOWED);
         BoardRater rater = new BoardRater();
         final TopRatedBoards topRatedBoards = new TopRatedBoards(TOP_RATED_BOARD_COUNT);
-        final AtomicInteger processedBoardCount = new AtomicInteger();
+        final AtomicLong processedBoardCount = new AtomicLong();
         System.out.println("Rating boards, based on words " + MINIMUM_WORD_LENGTH_ALLOWED + " letters long or longer.");
         Iterable<Board> iterable = () -> boardGenerator;
         long boardsProcessed = StreamSupport.stream(iterable.spliterator(), true)
@@ -57,7 +58,7 @@ public class Main {
                     return rb;
                 })
                 .map(rb -> {
-                    int count = processedBoardCount.incrementAndGet();
+                    long count = processedBoardCount.incrementAndGet();
                     if (count % PERIODIC_UPDATE_FREQUENCY == 0L) printPeriodicUpdate(topRatedBoards, count, totalBoardCount, startTimeInMillis, rb.getAnalyzedBoard().getBoard());
                     return rb;
                 })
