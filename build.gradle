@@ -2,8 +2,14 @@ group 'com.teratory.art'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'application'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 1.9
+
+// Application settings
+mainClassName = "com.teratory.art.wordscramble.Main"
+// applicationDefaultJvmArgs = ["-Xms4g -Xmx4g"]
+applicationDefaultJvmArgs = ["-Xms4g", "-Xmx4g"]
 
 repositories {
     mavenCentral()
