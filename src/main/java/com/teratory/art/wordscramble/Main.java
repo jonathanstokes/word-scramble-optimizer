@@ -6,6 +6,8 @@ import com.teratory.art.wordscramble.dictionary.FileWordList;
 import com.teratory.art.wordscramble.dictionary.WordList;
 import com.teratory.art.wordscramble.generate.BoardGenerator;
 import com.teratory.art.wordscramble.model.Board;
+import com.teratory.art.wordscramble.model.HistogrammedBoard;
+import com.teratory.art.wordscramble.rate.BoardHistogrammer;
 import com.teratory.art.wordscramble.rate.BoardRater;
 import com.teratory.art.wordscramble.rate.RatedBoard;
 import com.teratory.art.wordscramble.rate.TopRatedBoards;
@@ -17,7 +19,7 @@ import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collector;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class Main {
@@ -35,6 +37,10 @@ public class Main {
 
     private static final int FINAL_OUTPUT_COUNT = 30;
 
+    private static final double MINIMUM_VOWEL_RATIO = 0.01;
+
+    private static final double MINIMUM_CONSONANT_RATIO = 0.01;
+
     public static void main(String[] args) throws IOException {
         new Main().bruteForceGenerateAndRate((byte)3, (byte)3);
     }
@@ -46,11 +52,23 @@ public class Main {
         Iterator<Board> boardGenerator = new BoardGenerator().generateAll(width, height);
         BoardAnalyzer analyzer = new BoardAnalyzer(loadDictionary(Math.max((int)width, (int)height)), MINIMUM_WORD_LENGTH_ALLOWED);
         BoardRater rater = new BoardRater();
+        BoardHistogrammer histogrammer = new BoardHistogrammer();
         final TopRatedBoards topRatedBoards = new TopRatedBoards(TOP_RATED_BOARD_COUNT);
         final AtomicLong processedBoardCount = new AtomicLong();
         System.out.println("Rating boards, based on words " + MINIMUM_WORD_LENGTH_ALLOWED + " letters long or longer.");
         Iterable<Board> iterable = () -> boardGenerator;
         long boardsProcessed = StreamSupport.stream(iterable.spliterator(), true)
+                .peek(b -> processedBoardCount.incrementAndGet())
+                .map(histogrammer::computeHistogrammedBoard)
+                //.dropWhile(hb -> hb.getHistogram().getVowelToConsonantRatio() < MINIMUM_VOWEL_RATIO || hb.getHistogram().getConsonantToVowelRatio() < MINIMUM_CONSONANT_RATIO)
+                .dropWhile(hb -> {
+                    if (hb.getHistogram().getVowelToConsonantRatio() < MINIMUM_VOWEL_RATIO || hb.getHistogram().getConsonantToVowelRatio() < MINIMUM_CONSONANT_RATIO) {
+                        System.err.println("Dropping board with vowel ratio " + hb.getHistogram().getVowelToConsonantRatio() + ":\n" + hb.getBoard());
+                        return true;
+                    }
+                    return false;
+                })
+                .map(HistogrammedBoard::getBoard)
                 .map(analyzer::analyze)
                 .map(rater::rateBoard)
                 .map(rb -> {
@@ -58,7 +76,7 @@ public class Main {
                     return rb;
                 })
                 .map(rb -> {
-                    long count = processedBoardCount.incrementAndGet();
+                    long count = processedBoardCount.get();
                     if (count % PERIODIC_UPDATE_FREQUENCY == 0L) printPeriodicUpdate(topRatedBoards, count, totalBoardCount, startTimeInMillis, rb.getAnalyzedBoard().getBoard());
                     return rb;
                 })
